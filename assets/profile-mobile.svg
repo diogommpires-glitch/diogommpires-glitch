@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="600" height="750" viewBox="0 0 600 750" role="img" aria-labelledby="title description">
-<title id="title">diogommpires-glitch</title>
+<title id="title">Diogo M. Pires</title>
 <desc id="description">An ASCII portrait of my kitty beside my name, research software introduction and programming languages.</desc>
 <rect width="600" height="750" fill="#0D1117"/>
 <defs>
@@ -2178,7 +2178,7 @@
 <use href="#glyph-46" transform="translate(480.000 537.000) scale(0.010000 -0.010000)"/>
 </g>
 <g font-family="-apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, &quot;Noto Sans&quot;, Helvetica, Arial, sans-serif, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;" fill="#E6EDF3" font-weight="400">
-<text x="64" y="604" font-size="32" font-weight="500">diogommpires-glitch</text>
+<text x="64" y="604" font-size="32" font-weight="500">Diogo M. Pires</text>
 <text x="64" y="647" font-size="27">
 <tspan x="64">I build research software for sensing,</tspan>
 <tspan x="64" dy="34"> machine learning and simulation.</tspan>

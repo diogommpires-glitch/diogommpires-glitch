@@ -1,6 +1,6 @@
 <picture>
   <source media="(max-width: 640px)" srcset="assets/profile-mobile.svg?v=ascii-kitty-20261112">
-  <img src="assets/profile.svg?v=ascii-kitty-20261112" alt="An ASCII kitty portrait. I build research software for sensing, machine learning and simulation. Languages: Python, TypeScript and JavaScript." width="960">
+  <img src="assets/profile.svg?v=ascii-kitty-20261112" alt="Diogo M. Pires with an ASCII kitty portrait. I build research software for sensing, machine learning and simulation. Languages: Python, TypeScript and JavaScript." width="960">
 </picture>
 
 - [CrossVenue](https://github.com/diogommpires-glitch/crossvenue-publication) · Market-making research, paper trading and deterministic replay.

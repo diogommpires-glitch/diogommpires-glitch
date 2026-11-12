@@ -18,6 +18,7 @@ INK = "#E6EDF3"
 BACKGROUND = "#0D1117"
 PURPLE = "#7C3AED"
 LAVENDER = "#C4B5FD"
+DISPLAY_NAME = "Diogo M. Pires"
 
 
 def kitty_ascii(source):
@@ -122,7 +123,7 @@ def header(rows, paths, units_per_em, mobile):
             f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
             f'viewBox="0 0 {width} {height}" role="img" aria-labelledby="title description">'
         ),
-        '<title id="title">diogommpires-glitch</title>',
+        f'<title id="title">{escape(DISPLAY_NAME)}</title>',
         (
             '<desc id="description">An ASCII portrait of my kitty beside my name, '
             "research software introduction and programming languages.</desc>"
@@ -146,7 +147,7 @@ def header(rows, paths, units_per_em, mobile):
             f'<g font-family="{escape(SYSTEM_FONT, quote=True)}" fill="{INK}" font-weight="400">',
             (
                 f'<text x="{text_x}" y="{name_y}" font-size="{name_size}" '
-                'font-weight="500">diogommpires-glitch</text>'
+                f'font-weight="500">{escape(DISPLAY_NAME)}</text>'
             ),
             f'<text x="{text_x}" y="{body_y}" font-size="{body_size}">',
             f'<tspan x="{text_x}">I build research software for sensing,</tspan>',
