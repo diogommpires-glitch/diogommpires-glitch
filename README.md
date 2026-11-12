@@ -1,6 +1,6 @@
 <picture>
-  <source media="(max-width: 640px)" srcset="assets/profile-mobile.svg?v=stix-purple-20261112">
-  <img src="assets/profile.svg?v=stix-purple-20261112" alt="Diogo M. Pires with an ASCII kitty portrait. I build research software for sensing, machine learning and simulation. Languages: Python, TypeScript and JavaScript." width="960">
+  <source media="(max-width: 640px)" srcset="https://raw.githubusercontent.com/diogommpires-glitch/diogommpires-glitch/main/assets/profile-mobile.svg?v=stix-purple-20261112">
+  <img src="https://raw.githubusercontent.com/diogommpires-glitch/diogommpires-glitch/main/assets/profile.svg?v=stix-purple-20261112" alt="Diogo M. Pires with an ASCII kitty portrait. I build research software for sensing, machine learning and simulation. Languages: Python, TypeScript and JavaScript." width="960">
 </picture>
 
 - [CrossVenue](https://github.com/diogommpires-glitch/crossvenue-publication) · Market-making research, paper trading and deterministic replay.
