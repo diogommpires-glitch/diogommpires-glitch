@@ -1,8 +1,8 @@
 # diogommpires-glitch
 
 <picture>
-  <source media="(max-width: 640px)" srcset="assets/profile-mobile.svg">
-  <img src="assets/profile.svg" alt="ASCII portrait of diogommpires-glitch. Applied ML and simulation, with work in sensors, biometrics and numerical methods. Python, TypeScript and JavaScript. Windows and Linux CI targets across eight public source snapshots." width="1200">
+  <source media="(max-width: 640px)" srcset="assets/profile-mobile.svg?v=purple-kitty-20261112">
+  <img src="assets/profile.svg?v=purple-kitty-20261112" alt="Royal-purple public project dashboard with my kitty portrait. Eight project repositories, thirteen public snapshot commits and nine GitHub-classified source languages, checked on 12 November 2026. The project links and metric definitions follow below." width="1200">
 </picture>
 
 I build research software for sensing, machine learning and simulation. These eight public source snapshots include experiments, evaluation tools and the limits of the work.
@@ -18,18 +18,20 @@ I build research software for sensing, machine learning and simulation. These ei
 | [SECOM Quality Lab](https://github.com/diogommpires-glitch/secom-quality-lab) | Semiconductor inspection prioritisation |
 | [Dodo Mem](https://github.com/diogommpires-glitch/dodo-mem) | Evidence-linked memory and bounded retrieval |
 
-Project links and card facts reflect the public snapshots on 12 November 2026. Windows and Linux are CI targets across the collection; individual repositories document their own coverage.
+The dashboard is a static snapshot checked on **12 November 2026**. Its eight projects are the repositories linked above; the profile repository and private activity are excluded. GitHub classifies 8,109,927 source bytes across nine languages in these projects. The chart shows those byte shares, not skill, effort or time spent. Its “Other” segment combines the six smaller language classifications.
+
+The thirteen commits belong to the public snapshot histories. All thirteen have UTC commit dates of 12 November 2026. This is not a contribution calendar or a claim about daily working habits.
 
 <details>
-<summary>About the portrait</summary>
+<summary>Dashboard data and portrait</summary>
 
-The portrait is a local, deterministic ASCII conversion of my GitHub avatar. Both cards contain SVG text and shapes, with no scripts, external images or font downloads. The source photo is not distributed here.
-
-To rebuild the cards, use Python 3.11 or later with Pillow 13.0.0 and supply the same authorised 300 × 300 avatar locally.
+The dated public metadata, project heads and language byte counts are saved in [data/public-metrics.json](data/public-metrics.json). To refresh the figures, collect the same public repository metadata, languages and complete commit histories, replace that JSON, then regenerate both layouts with Python 3.11 or later:
 
 ```sh
-python scripts/generate_profile.py /path/to/avatar.png
+python scripts/generate_profile.py
 ```
+
+The desktop and phone layouts are static SVGs containing text, shapes and an embedded copy of [the kitty portrait](assets/kitty.png). The portrait was adapted from my supplied photograph by removing its background. The original photograph is not included. There are no scripts, external image requests, font downloads or automatic publishing jobs.
 
 </details>
 
