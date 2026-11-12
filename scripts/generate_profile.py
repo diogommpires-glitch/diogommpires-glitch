@@ -1,185 +1,160 @@
-"""Build the static desktop and phone dashboards from public snapshot data."""
+"""Build the ASCII kitty and static profile headers from the authorised photo."""
 
-import base64
-import json
-from datetime import datetime
+import argparse
 from html import escape
 from pathlib import Path
 
+from fontTools.pens.svgPathPen import SVGPathPen
+from fontTools.ttLib import TTFont
+from PIL import Image, ImageDraw, ImageEnhance, ImageOps
+
 ROOT = Path(__file__).resolve().parents[1]
-FONT = "'Segoe UI', Arial, sans-serif"
-INK = "#f3efff"
-MUTED = "#a9a1bb"
-PURPLE = "#b99aff"
-RULE = "#302840"
-COLOURS = ["#8954f5", "#b18afa", "#d4bdfc", "#625372"]
+FONT = ROOT / "assets/fonts/JetBrainsMono-Regular.ttf"
+SYSTEM_FONT = (
+    '-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, '
+    'Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji"'
+)
+INK = "#E6EDF3"
+BACKGROUND = "#0D1117"
+PURPLE = "#7C3AED"
+LAVENDER = "#C4B5FD"
 
 
-def text(x, y, value, size=18, fill=INK, weight=400):
-    return (
-        f'<text x="{x}" y="{y}" font-size="{size}" fill="{fill}" '
-        f'font-weight="{weight}">{escape(str(value))}</text>'
+def kitty_ascii(source):
+    with Image.open(source) as photo:
+        photo = ImageOps.exif_transpose(photo).convert("RGB")
+    if photo.size != (1200, 1600):
+        raise ValueError(f"photo must be 1200 x 1600 pixels, got {photo.size}")
+
+    # This outline follows the supplied cat, excluding the basket and tiled wall.
+    mask = Image.new("L", photo.size)
+    ImageDraw.Draw(mask).polygon(
+        [
+            (425, 244),
+            (449, 259),
+            (488, 286),
+            (529, 309),
+            (565, 299),
+            (605, 293),
+            (645, 290),
+            (684, 290),
+            (721, 264),
+            (762, 232),
+            (801, 204),
+            (796, 231),
+            (790, 261),
+            (787, 286),
+            (791, 311),
+            (785, 336),
+            (781, 363),
+            (780, 395),
+            (786, 425),
+            (781, 454),
+            (774, 485),
+            (763, 514),
+            (752, 540),
+            (766, 565),
+            (781, 600),
+            (795, 636),
+            (803, 673),
+            (805, 710),
+            (461, 710),
+            (466, 677),
+            (475, 645),
+            (485, 610),
+            (499, 578),
+            (518, 554),
+            (517, 532),
+            (498, 506),
+            (488, 477),
+            (484, 449),
+            (475, 408),
+            (462, 373),
+            (450, 347),
+            (442, 314),
+            (433, 284),
+        ],
+        fill=255,
     )
+    crop = (404, 192, 836, 710)
+    mask = mask.crop(crop)
+    grey = ImageOps.autocontrast(photo.crop(crop).convert("L"), cutoff=1, mask=mask)
+    grey = ImageEnhance.Contrast(grey).enhance(1.22)
+    # A cell is 0.6 em wide and 1 em high, preserving photographic proportions.
+    grey = grey.resize((72, 52), Image.Resampling.LANCZOS)
+    mask = mask.resize(grey.size, Image.Resampling.LANCZOS)
+    ramp = " .:-=+*#%@"
+    rows = []
+    for y in range(grey.height):
+        row = []
+        for x in range(grey.width):
+            character = " "
+            if mask.getpixel((x, y)) >= 128:
+                tone = grey.getpixel((x, y))
+                character = ramp[round(tone / 255 * (len(ramp) - 1))]
+            row.append(character)
+        rows.append("".join(row))
+    return rows
 
 
-def rule(x, y, width):
-    return f'<path d="M{x} {y}h{width}" stroke="{RULE}"/>'
+def glyph_paths(rows):
+    with TTFont(FONT) as font:
+        glyphs = font.getGlyphSet()
+        cmap = font.getBestCmap()
+        paths = []
+        for character in sorted(set("".join(rows)) - {" "}):
+            pen = SVGPathPen(glyphs)
+            glyphs[cmap[ord(character)]].draw(pen)
+            paths.append(f'<path id="glyph-{ord(character)}" d="{pen.getCommands()}"/>')
+        return "\n".join(paths), font["head"].unitsPerEm
 
 
-def dashboard(data, portrait, mobile):
-    width, height = (600, 1460) if mobile else (1200, 820)
-    x, right_width = (40, 520) if mobile else (398, 754)
-    title_y = 670 if mobile else 128
-    date = datetime.fromisoformat(data["checked_at_utc"]).strftime("%d %B %Y")
-    metrics = data["metrics"]
-    languages = data["languages"]
-    commits = metrics["project_public_commits"]
-    total_bytes = metrics["project_language_bytes_total"]
-    groups = [
-        *languages[:3],
-        {"name": "Other", "bytes": sum(item["bytes"] for item in languages[3:])},
-    ]
+def header(rows, paths, units_per_em, mobile):
+    width, height = (600, 750) if mobile else (960, 432)
+    kitty_x, kitty_y, size = (84, 27, 10) if mobile else (32, 23, 7.6)
+    text_x, name_y = (64, 604) if mobile else (400, 166)
+    body_y, language_y = (647, 729) if mobile else (213, 293)
+    name_size, body_size, language_size = (32, 27, 26) if mobile else (30, 22, 21)
+    line_height = 34 if mobile else 30
     parts = [
         '<?xml version="1.0" encoding="UTF-8"?>',
         (
             f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
             f'viewBox="0 0 {width} {height}" role="img" aria-labelledby="title description">'
         ),
-        '<title id="title">diogommpires-glitch | public project dashboard</title>',
+        '<title id="title">diogommpires-glitch</title>',
         (
-            f'<desc id="description">A photographic kitty portrait beside public project '
-            f"facts. {metrics['project_repositories']} project repositories, {commits} "
-            f"public snapshot commits and {metrics['distinct_project_languages']} "
-            f"GitHub-classified languages. Data checked on {date}. "
-            "PolyForm Noncommercial licence.</desc>"
+            '<desc id="description">An ASCII portrait of my kitty beside my name, '
+            "research software introduction and programming languages.</desc>"
         ),
-        f'<g font-family="{FONT}">',
-        (
-            f'<rect x="1" y="1" width="{width - 2}" height="{height - 2}" rx="24" '
-            'fill="#0e0c15" stroke="#35274d" stroke-width="2"/>'
-        ),
-        '<path d="M28 34v22" stroke="#8954f5" stroke-width="5" stroke-linecap="round"/>',
-        text(44, 51, "PUBLIC WORK", 16, PURPLE, 600),
-        text(width - 254, 51, date, 16, MUTED),
-        rule(28, 78, width - 56),
+        f'<rect width="{width}" height="{height}" fill="{BACKGROUND}"/>',
+        f"<defs>\n{paths}\n</defs>",
+        f'<g fill="{INK}" aria-hidden="true">',
     ]
-    portrait_x, portrait_y, portrait_width, portrait_height = (
-        (112, 106, 376, 502) if mobile else (32, 112, 332, 444)
-    )
+    scale = size / units_per_em
+    for y, row in enumerate(rows):
+        for x, character in enumerate(row):
+            if character != " ":
+                parts.append(
+                    f'<use href="#glyph-{ord(character)}" transform="translate('
+                    f"{kitty_x + x * size * 0.6:.3f} {kitty_y + y * size:.3f}) "
+                    f'scale({scale:.6f} {-scale:.6f})"/>'
+                )
     parts.extend(
         [
+            "</g>",
+            f'<g font-family="{escape(SYSTEM_FONT, quote=True)}" fill="{INK}" font-weight="400">',
             (
-                f'<circle cx="{width // 2 if mobile else 198}" '
-                f'cy="{302 if mobile else 296}" r="{180 if mobile else 156}" '
-                'fill="#1c1230" stroke="#483066"/>'
+                f'<text x="{text_x}" y="{name_y}" font-size="{name_size}" '
+                'font-weight="500">diogommpires-glitch</text>'
             ),
-            (
-                f'<image x="{portrait_x}" y="{portrait_y}" width="{portrait_width}" '
-                f'height="{portrait_height}" preserveAspectRatio="xMidYMid meet" '
-                f'href="data:image/png;base64,{portrait}"/>'
-            ),
-        ]
-    )
-    if not mobile:
-        parts.extend(
-            [
-                text(42, 600, "SENSING", 22, PURPLE, 600),
-                text(42, 631, "BIOMETRICS", 22, PURPLE, 600),
-                text(42, 662, "NUMERICAL METHODS", 22, PURPLE, 600),
-                rule(42, 698, 290),
-                text(42, 730, "Python · TypeScript · JavaScript", 15, MUTED),
-            ]
-        )
-    parts.extend(
-        [
-            text(x, title_y, "diogommpires-glitch", 29 if mobile else 34, INK, 600),
-            text(x, title_y + 51, "Applied ML + simulation", 31, PURPLE, 500),
-            text(x, title_y + 88, "Research software for sensing,", 22, MUTED),
-            text(x, title_y + 120, "biometrics and numerical methods.", 22, MUTED),
-            rule(x, title_y + 151, right_width),
-        ]
-    )
-    metric_y = title_y + 208
-    labels = [
-        (metrics["project_repositories"], "Projects"),
-        (commits, "Snapshot commits"),
-        (metrics["distinct_project_languages"], "Languages"),
-    ]
-    for index, (value, label) in enumerate(labels):
-        column_x = x + index * (right_width / 3)
-        parts.append(text(column_x, metric_y, value, 43, INK, 600))
-        if mobile and label == "Snapshot commits":
-            parts.append(text(column_x, metric_y + 31, "Snapshot", 21, MUTED))
-            parts.append(text(column_x, metric_y + 57, "commits", 21, MUTED))
-        else:
-            parts.append(text(column_x, metric_y + 31, label, 21, MUTED))
-    chart_y = metric_y + (126 if mobile else 104)
-    parts.extend(
-        [
-            rule(x, chart_y - 40, right_width),
-            text(x, chart_y, "SOURCE LANGUAGES", 22, PURPLE, 600),
-        ]
-    )
-    bar_x = x
-    for group, colour in zip(groups, COLOURS, strict=True):
-        bar_width = right_width * group["bytes"] / total_bytes
-        parts.append(
-            f'<rect x="{bar_x:.3f}" y="{chart_y + 24}" width="{bar_width:.3f}" '
-            f'height="16" fill="{colour}"/>'
-        )
-        bar_x += bar_width
-    for index, (group, colour) in enumerate(zip(groups, COLOURS, strict=True)):
-        column_x = x + (index % 2) * 265 if mobile else x + index * 190
-        row_y = chart_y + 88 + (index // 2) * 69 if mobile else chart_y + 82
-        parts.extend(
-            [
-                f'<circle cx="{column_x + 4}" cy="{row_y - 7}" r="4" fill="{colour}"/>',
-                text(column_x + 16, row_y, group["name"], 22, MUTED),
-                text(
-                    column_x + 16,
-                    row_y + 30,
-                    f"{100 * group['bytes'] / total_bytes:.1f}%",
-                    24 if mobile else 22,
-                ),
-            ]
-        )
-    caption_y = chart_y + (219 if mobile else 151)
-    parts.append(
-        text(
-            x,
-            caption_y,
-            "GitHub-classified source bytes across eight projects.",
-            20,
-            MUTED,
-        )
-    )
-    activity_y = caption_y + 65
-    parts.extend(
-        [
-            rule(x, activity_y - 29, right_width),
-            text(x, activity_y, "PUBLIC SNAPSHOT ACTIVITY", 22, PURPLE, 600),
-            text(
-                x,
-                activity_y + 42,
-                f"{commits} commits in the linked snapshots",
-                23 if mobile else 22,
-            ),
-            text(
-                x,
-                activity_y + 75,
-                "Snapshot history only. Private activity excluded.",
-                20,
-                MUTED,
-            ),
-            rule(28, height - 66, width - 56),
-            text(40, height - 33, "PolyForm Noncommercial", 19, MUTED),
-            text(
-                width - 196,
-                height - 33,
-                f"{metrics['project_repositories']} public projects",
-                19,
-                PURPLE,
-            ),
+            f'<text x="{text_x}" y="{body_y}" font-size="{body_size}">',
+            f'<tspan x="{text_x}">I build research software for sensing,</tspan>',
+            f'<tspan x="{text_x}" dy="{line_height}"> machine learning and simulation.</tspan>',
+            "</text>",
+            f'<text x="{text_x}" y="{language_y}" font-size="{language_size}" fill="{LAVENDER}">',
+            f'Python <tspan fill="{PURPLE}">·</tspan> TypeScript <tspan fill="{PURPLE}">·</tspan> JavaScript',
+            "</text>",
             "</g>",
             "</svg>",
         ]
@@ -188,13 +163,16 @@ def dashboard(data, portrait, mobile):
 
 
 def main():
-    data = json.loads((ROOT / "data/public-metrics.json").read_text(encoding="utf-8"))
-    portrait = base64.b64encode((ROOT / "assets/kitty.png").read_bytes()).decode(
-        "ascii"
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("photo", type=Path, help="the authorised original kitty photo")
+    rows = kitty_ascii(parser.parse_args().photo)
+    paths, units_per_em = glyph_paths(rows)
+    (ROOT / "assets/kitty.txt").write_text(
+        "\n".join(rows) + "\n", encoding="ascii", newline="\n"
     )
     for filename, mobile in [("profile.svg", False), ("profile-mobile.svg", True)]:
         (ROOT / "assets" / filename).write_text(
-            dashboard(data, portrait, mobile), encoding="utf-8", newline="\n"
+            header(rows, paths, units_per_em, mobile), encoding="utf-8", newline="\n"
         )
 
 
