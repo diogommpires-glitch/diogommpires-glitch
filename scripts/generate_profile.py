@@ -10,14 +10,10 @@ from PIL import Image, ImageDraw, ImageEnhance, ImageOps
 
 ROOT = Path(__file__).resolve().parents[1]
 FONT = ROOT / "assets/fonts/JetBrainsMono-Regular.ttf"
-SYSTEM_FONT = (
-    '-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, '
-    'Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji"'
-)
+TEXT_FONT = ROOT / "assets/fonts/STIXTwoText.ttf"
 INK = "#E6EDF3"
 BACKGROUND = "#0D1117"
-PURPLE = "#7C3AED"
-LAVENDER = "#C4B5FD"
+ACCENT = "#9575CD"
 DISPLAY_NAME = "Diogo M. Pires"
 
 
@@ -110,6 +106,38 @@ def glyph_paths(rows):
         return "\n".join(paths), font["head"].unitsPerEm
 
 
+def outlined_text(lines):
+    paths, groups = [], []
+    drawn = set()
+    with TTFont(TEXT_FONT) as font:
+        cmap = font.getBestCmap()
+        glyphs = {
+            weight: font.getGlyphSet(location={"wght": weight}) for weight in (400, 500)
+        }
+        for value, weight, x, y, size, fill in lines:
+            groups.append(
+                f'<g aria-label="{escape(value, quote=True)}" data-font="STIX Two Text" '
+                f'data-weight="{weight}" fill="{fill}">'
+            )
+            scale = size / font["head"].unitsPerEm
+            for character in value:
+                glyph = glyphs[weight][cmap[ord(character)]]
+                glyph_id = f"stix-{weight}-{ord(character)}"
+                if character != " ":
+                    if glyph_id not in drawn:
+                        pen = SVGPathPen(glyphs[weight])
+                        glyph.draw(pen)
+                        paths.append(f'<path id="{glyph_id}" d="{pen.getCommands()}"/>')
+                        drawn.add(glyph_id)
+                    groups.append(
+                        f'<use href="#{glyph_id}" transform="translate({x:.3f} {y}) '
+                        f'scale({scale:.6f} {-scale:.6f})"/>'
+                    )
+                x += glyph.width * scale
+            groups.append("</g>")
+    return "\n".join(paths), "\n".join(groups)
+
+
 def header(rows, paths, units_per_em, mobile):
     width, height = (600, 750) if mobile else (960, 432)
     kitty_x, kitty_y, size = (84, 27, 10) if mobile else (32, 23, 7.6)
@@ -117,6 +145,35 @@ def header(rows, paths, units_per_em, mobile):
     body_y, language_y = (647, 729) if mobile else (213, 293)
     name_size, body_size, language_size = (32, 27, 26) if mobile else (30, 22, 21)
     line_height = 34 if mobile else 30
+    text_paths, text_groups = outlined_text(
+        [
+            (DISPLAY_NAME, 500, text_x, name_y, name_size, INK),
+            (
+                "I build research software for sensing,",
+                400,
+                text_x,
+                body_y,
+                body_size,
+                INK,
+            ),
+            (
+                "machine learning and simulation.",
+                400,
+                text_x,
+                body_y + line_height,
+                body_size,
+                INK,
+            ),
+            (
+                "Python · TypeScript · JavaScript",
+                400,
+                text_x,
+                language_y,
+                language_size,
+                ACCENT,
+            ),
+        ]
+    )
     parts = [
         '<?xml version="1.0" encoding="UTF-8"?>',
         (
@@ -125,11 +182,12 @@ def header(rows, paths, units_per_em, mobile):
         ),
         f'<title id="title">{escape(DISPLAY_NAME)}</title>',
         (
-            '<desc id="description">An ASCII portrait of my kitty beside my name, '
-            "research software introduction and programming languages.</desc>"
+            '<desc id="description">An ASCII portrait of my kitty. '
+            "I build research software for sensing, machine learning and simulation. "
+            "Python · TypeScript · JavaScript.</desc>"
         ),
         f'<rect width="{width}" height="{height}" fill="{BACKGROUND}"/>',
-        f"<defs>\n{paths}\n</defs>",
+        f"<defs>\n{paths}\n{text_paths}\n</defs>",
         f'<g fill="{INK}" aria-hidden="true">',
     ]
     scale = size / units_per_em
@@ -144,19 +202,7 @@ def header(rows, paths, units_per_em, mobile):
     parts.extend(
         [
             "</g>",
-            f'<g font-family="{escape(SYSTEM_FONT, quote=True)}" fill="{INK}" font-weight="400">',
-            (
-                f'<text x="{text_x}" y="{name_y}" font-size="{name_size}" '
-                f'font-weight="500">{escape(DISPLAY_NAME)}</text>'
-            ),
-            f'<text x="{text_x}" y="{body_y}" font-size="{body_size}">',
-            f'<tspan x="{text_x}">I build research software for sensing,</tspan>',
-            f'<tspan x="{text_x}" dy="{line_height}"> machine learning and simulation.</tspan>',
-            "</text>",
-            f'<text x="{text_x}" y="{language_y}" font-size="{language_size}" fill="{LAVENDER}">',
-            f'Python <tspan fill="{PURPLE}">·</tspan> TypeScript <tspan fill="{PURPLE}">·</tspan> JavaScript',
-            "</text>",
-            "</g>",
+            text_groups,
             "</svg>",
         ]
     )
